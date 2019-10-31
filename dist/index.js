@@ -80,7 +80,7 @@ var PasswordStrength = function () {
         return this.msg.error.invalidArguments;
       }
       try {
-        // this.validatePolicy(val);
+        this.validatePolicy(val);
         this.validateFactors(val);
       } catch (err) {
         return err;
@@ -103,7 +103,6 @@ var PasswordStrength = function () {
 
       // validate factor
       var validateFactors = this.getValidFactor();
-      var unionCondition = [];
       var specialLength = 0;
       validateFactors.forEach(function (factor) {
         var str = _this2.passwordFactorRules[factor] || _this2.passwordFactorRules[factor + 'Rules'];
@@ -126,7 +125,6 @@ var PasswordStrength = function () {
           }
         } else {
           reg = new RegExp('[' + str + ']', condition);
-          unionCondition.push(str);
         }
 
         if (!reg.test(val)) {
@@ -138,11 +136,17 @@ var PasswordStrength = function () {
           };
         }
       });
+      var factors = Object.keys(this.passwordFactor);
+      var commonFactorReg = new RegExp('[' + factors.map(function (factor) {
+        return _this2.passwordFactorRules[factor];
+      }).join('') + ']', 'g');
+      var specialReg = this.passwordFactorRules.specialSymbolsRules;
 
-      var unionReg = new RegExp('[' + unionCondition.join() + ']', 'g');
-      if (val.match(unionReg).length + specialLength !== val.length) {
+      var commonFactorCount = val.match(commonFactorReg);
+      var specialCount = val.match(specialReg);
+      if ((commonFactorCount ? commonFactorCount.length : 0) + (specialCount ? specialCount.length : 0) !== val.length) {
         throw {
-          message: this.msg.error.outOfRange + ',\u4EC5\u5141\u8BB8\u5305\u542B' + validateFactors.map(function (factor) {
+          message: this.msg.error.outOfRange + ',\u4EC5\u5141\u8BB8\u5305\u542B' + factors.map(function (factor) {
             return _this2.msg.word[factor];
           }).join(','),
           val: val

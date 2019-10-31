@@ -46,7 +46,7 @@ class PasswordStrength {
       return this.msg.error.invalidArguments;
     }
     try {
-      // this.validatePolicy(val);
+      this.validatePolicy(val);
       this.validateFactors(val);
     } catch (err) {
       return err;
@@ -59,7 +59,6 @@ class PasswordStrength {
   validateFactors (val) {
     // validate factor
     const validateFactors = this.getValidFactor();
-    let unionCondition = [];
     let specialLength = 0;
     validateFactors.forEach(factor => {
       const str = this.passwordFactorRules[factor] || this.passwordFactorRules[factor + 'Rules'];
@@ -83,7 +82,6 @@ class PasswordStrength {
         
       } else {
         reg = new RegExp(`[${str}]`, condition);
-        unionCondition.push(str);
       }
 
       if (!reg.test(val)) {
@@ -95,11 +93,15 @@ class PasswordStrength {
         };
       }
     });
+    const factors = Object.keys(this.passwordFactor);
+    const commonFactorReg = new RegExp(`[${factors.map(factor=>this.passwordFactorRules[factor]).join('')}]`,'g');
+    const specialReg = this.passwordFactorRules.specialSymbolsRules;
 
-    const unionReg = new RegExp(`[${unionCondition.join()}]`,'g');
-    if (val.match(unionReg).length + specialLength !== val.length) {
+    const commonFactorCount = val.match(commonFactorReg);
+    const specialCount = val.match(specialReg);
+    if ((commonFactorCount?commonFactorCount.length:0) + (specialCount?specialCount.length:0) !== val.length) {
       throw {
-        message: `${this.msg.error.outOfRange},仅允许包含${validateFactors.map(factor=>this.msg.word[factor]).join(',')}`,
+        message: `${this.msg.error.outOfRange},仅允许包含${factors.map(factor=>this.msg.word[factor]).join(',')}`,
         val,
       };
     }
