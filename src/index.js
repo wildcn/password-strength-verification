@@ -10,7 +10,7 @@ class PasswordStrength {
       opts = config;
       console.error('[password-strength-verificaiton] use config: ' + JSON.stringify(opts));
     }else{
-      Object.assign(opts,config);
+      Object.assign(config,opts);
     }
 
     this.lang = lang;
