@@ -29,9 +29,11 @@ var PasswordStrength = function () {
     _classCallCheck(this, PasswordStrength);
 
     if (!opts) {
-      console.info('[password-strength-verificaiton] no passwordConfig,passwordPolicy inject');
+      console.error('[password-strength-verificaiton] no passwordConfig,passwordPolicy inject');
       opts = _config2.default;
-      console.info('[password-strength-verificaiton] use config: ' + JSON.stringify(opts));
+      console.error('[password-strength-verificaiton] use config: ' + JSON.stringify(opts));
+    } else {
+      Object.assign(opts, _config2.default);
     }
 
     this.lang = _lang2.default;
@@ -50,12 +52,19 @@ var PasswordStrength = function () {
 
   _createClass(PasswordStrength, [{
     key: 'setLanguage',
+
+    /**
+     * set error message language, Default provided language：cn en, you can use setLanguage() to change your language , and use mergeLanguage() to add your lang.
+     * @param {String}} language cn en ...
+     */
     value: function setLanguage(language) {
       if (_lang2.default[language]) {
         this.language = language;
       }
     }
-    // 支持对于错误信息的自定义
+    /**
+     * support to add your language like {jp:{invalidArguments:'パラメータエラー'}}
+     */
 
   }, {
     key: 'mergeLanguage',
@@ -64,7 +73,7 @@ var PasswordStrength = function () {
         Object.assign(this.lang, data);
       }
     }
-    // 支持添加自定义规则
+    // custom exclusion rules,if you want to do it 
 
   }, {
     key: 'mergeRules',
@@ -103,7 +112,6 @@ var PasswordStrength = function () {
 
       // validate factor
       var validateFactors = this.getValidFactor();
-      var specialLength = 0;
       validateFactors.forEach(function (factor) {
         var str = _this2.passwordFactorRules[factor] || _this2.passwordFactorRules[factor + 'Rules'];
 
@@ -114,15 +122,11 @@ var PasswordStrength = function () {
             val: val
           };
         }
+        // ignoreCase condition
         var condition = _this2.passwordPolicy.ignoreCase ? 'i' : '';
-        // 是否忽略大小写
         var reg = void 0;
         if (str instanceof RegExp) {
           reg = str;
-          var match = val.match(str);
-          if (match) {
-            specialLength += match.length;
-          }
         } else {
           reg = new RegExp('[' + str + ']', condition);
         }
@@ -136,26 +140,35 @@ var PasswordStrength = function () {
           };
         }
       });
-      var factors = Object.keys(this.passwordFactor);
-      var commonFactorReg = new RegExp('[' + factors.map(function (factor) {
-        return _this2.passwordFactorRules[factor];
-      }).join('') + ']', 'g');
-      var specialReg = this.passwordFactorRules.specialSymbolsRules;
+      // validate password factor
+      if (this.passwordPolicy.lockInFactor) {
+        var factors = Object.keys(this.passwordFactor);
+        var commonFactorReg = new RegExp('[' + factors.map(function (factor) {
+          return _this2.passwordFactorRules[factor];
+        }).join('') + ']', 'g');
+        var specialReg = this.passwordFactorRules.specialSymbolsRules;
 
-      var commonFactorCount = val.match(commonFactorReg);
-      var specialCount = val.match(specialReg);
-      if ((commonFactorCount ? commonFactorCount.length : 0) + (specialCount ? specialCount.length : 0) !== val.length) {
-        throw {
-          message: this.msg.error.outOfRange + ',\u4EC5\u5141\u8BB8\u5305\u542B' + factors.map(function (factor) {
-            return _this2.msg.word[factor];
-          }).join(','),
-          val: val
-        };
+        var commonFactorCount = val.match(commonFactorReg);
+        var specialCount = val.match(specialReg);
+        if ((commonFactorCount ? commonFactorCount.length : 0) + (specialCount ? specialCount.length : 0) !== val.length) {
+          throw {
+            message: this.msg.error.outOfRange + ',only allow ' + factors.map(function (factor) {
+              return _this2.msg.word[factor];
+            }).join(','),
+            val: val
+          };
+        }
       }
     }
+    /**
+     * filter policy , see ./config.passwordPolicy
+     * @param {String} val validate argument
+     */
+
   }, {
     key: 'validatePolicy',
     value: function validatePolicy(val) {
+      // validate min limit
       var _passwordPolicy = this.passwordPolicy,
           minLength = _passwordPolicy.minLength,
           maxLength = _passwordPolicy.maxLength;
@@ -168,7 +181,7 @@ var PasswordStrength = function () {
           val: val
         };
       }
-
+      // validate max limit
       if (maxLength && val.length > maxLength) {
         throw {
           message: this.msg.error['maxLength'],
@@ -177,8 +190,13 @@ var PasswordStrength = function () {
           val: val
         };
       }
+      // validate exclusion rule
       this.validateExclusion(val);
     }
+    /**
+     * Regular rules to exclude by default， just like domain/website/email...
+     */
+
   }, {
     key: 'validateExclusion',
     value: function validateExclusion(val) {
@@ -188,7 +206,6 @@ var PasswordStrength = function () {
 
       if ([].concat(exclusion).length) {
         exclusion.forEach(function (factor) {
-
           if (_rules2.default[factor]) {
             if (_rules2.default[factor].test(val)) {
               throw {
