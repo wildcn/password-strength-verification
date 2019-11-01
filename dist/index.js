@@ -33,7 +33,7 @@ var PasswordStrength = function () {
       opts = _config2.default;
       console.error('[password-strength-verificaiton] use config: ' + JSON.stringify(opts));
     } else {
-      Object.assign(opts, _config2.default);
+      Object.assign(_config2.default, opts);
     }
 
     this.lang = _lang2.default;
